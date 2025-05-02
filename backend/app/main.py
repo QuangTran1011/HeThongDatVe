@@ -7,7 +7,7 @@ from app.config import settings
 from app.models import Booking, BookedSeat, User, Bus, Seat, Payment, Route
 # from app.models import Base
 
-from app.routers import auth, users, buses, routes, bookings, payments
+from app.routers import auth, users, buses, routes, bookings, payments, admin
 
 # Tạo database tables
 Base.metadata.create_all(bind=engine)
@@ -33,6 +33,7 @@ app.include_router(buses.router, prefix=settings.API_V1_STR)
 app.include_router(routes.router, prefix=settings.API_V1_STR)
 app.include_router(bookings.router, prefix=settings.API_V1_STR)
 app.include_router(payments.router, prefix=settings.API_V1_STR)
+app.include_router(admin.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():

@@ -1,7 +1,7 @@
-from typing import Any
+from typing import Any, Dict, Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -14,7 +14,7 @@ router = APIRouter(
     tags=["payments"],
 )
 
-@router.post("", response_model=dict)
+@router.post("", response_model=Dict[str, Any])
 def create_payment(
     booking_id: int,
     payment_method: str,
@@ -59,7 +59,7 @@ def create_payment(
     
     # URL để redirect sau khi thanh toán
     base_url = str(request.base_url)
-    callback_url = f"{base_url}api/v1/payments/confirm?booking_id={booking_id}"
+    callback_url = f"{base_url}api/v1/payments/callback?booking_id={booking_id}"
     
     # Tạo giao dịch thanh toán
     payment_data = payment_gateway.create_payment(
@@ -75,7 +75,8 @@ def create_payment(
             booking_id=booking_id,
             amount=booking.total_price,
             payment_method=payment_method,
-            status="pending"
+            status="pending",
+            transaction_id=payment_data.get("transaction_id")
         )
         
         db.add(payment)
@@ -91,15 +92,14 @@ def create_payment(
             detail="Không thể tạo giao dịch thanh toán"
         )
 
-@router.post("/confirm")
-def confirm_payment(
-    transaction_id: str,
-    booking_id: int,
-    status: str,
+@router.get("/callback")
+def payment_callback(
+    booking_id: int = Query(...),
+    transaction_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ) -> Any:
     """
-    Xác nhận thanh toán từ cổng thanh toán.
+    Callback khi người dùng quay lại từ trang thanh toán
     """
     # Kiểm tra đơn đặt vé
     booking = db.query(models.Booking).filter(models.Booking.id == booking_id).first()
@@ -119,6 +119,10 @@ def confirm_payment(
             detail="Không tìm thấy thông tin thanh toán"
         )
     
+    # Nếu không có transaction_id, sử dụng transaction_id đã lưu
+    if not transaction_id:
+        transaction_id = payment.transaction_id
+    
     # Kiểm tra trạng thái thanh toán từ cổng thanh toán
     payment_gateway = PaymentGateway()
     payment_info = payment_gateway.verify_payment(transaction_id)
@@ -126,7 +130,53 @@ def confirm_payment(
     if payment_info.get("status") == "success":
         # Cập nhật trạng thái thanh toán
         payment.status = "completed"
-        payment.transaction_id = transaction_id
+        payment.payment_date = datetime.now()
+        
+        # Cập nhật trạng thái đặt vé
+        booking.status = "confirmed"
+        
+        db.commit()
+        
+        return {"message": "Thanh toán thành công", "booking_id": booking_id}
+    elif payment_info.get("status") == "pending":
+        return {"message": "Thanh toán đang xử lý", "booking_id": booking_id}
+    else:
+        # Cập nhật trạng thái thanh toán
+        payment.status = "failed"
+        
+        db.commit()
+        
+        return {"message": "Thanh toán thất bại", "booking_id": booking_id}
+
+@router.post("/confirm", response_model=Dict[str, Any])
+def confirm_payment(
+    transaction_id: str,
+    status: str,
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    Xác nhận thanh toán từ webhook của cổng thanh toán.
+    """
+    # Tìm giao dịch thanh toán dựa trên transaction_id
+    payment = db.query(models.Payment).filter(models.Payment.transaction_id == transaction_id).first()
+    
+    if not payment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy thông tin thanh toán"
+        )
+    
+    booking = db.query(models.Booking).filter(models.Booking.id == payment.booking_id).first()
+    
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy thông tin đặt vé"
+        )
+    
+    if status == "success":
+        # Cập nhật trạng thái thanh toán
+        payment.status = "completed"
         payment.payment_date = datetime.now()
         
         # Cập nhật trạng thái đặt vé
@@ -138,16 +188,12 @@ def confirm_payment(
     else:
         # Cập nhật trạng thái thanh toán
         payment.status = "failed"
-        payment.transaction_id = transaction_id
         
         db.commit()
         
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Thanh toán thất bại"
-        )
+        return {"message": "Thanh toán thất bại"}
 
-@router.post("/refund")
+@router.post("/refund", response_model=Dict[str, Any])
 def refund_payment(
     booking_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -235,4 +281,48 @@ def refund_payment(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Hoàn tiền thất bại"
+        )
+
+# Endpoint chỉ dùng trong môi trường phát triển để giả lập hoàn thành thanh toán
+@router.post("/mock-complete", response_model=Dict[str, Any])
+def mock_complete_payment(
+    transaction_id: str,
+    success: bool = True,
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    API giả lập để mô phỏng hoàn thành thanh toán (chỉ dùng cho phát triển)
+    """
+    payment_gateway = PaymentGateway()
+    
+    try:
+        result = payment_gateway.simulate_payment_completion(transaction_id, success)
+        
+        # Cập nhật thông tin trong cơ sở dữ liệu
+        payment = db.query(models.Payment).filter(
+            models.Payment.transaction_id == transaction_id
+        ).first()
+        
+        if payment:
+            if success:
+                payment.status = "completed"
+                payment.payment_date = datetime.now()
+                
+                # Cập nhật trạng thái đơn đặt vé
+                booking = db.query(models.Booking).filter(
+                    models.Booking.id == payment.booking_id
+                ).first()
+                
+                if booking:
+                    booking.status = "confirmed"
+            else:
+                payment.status = "failed"
+            
+            db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
         )

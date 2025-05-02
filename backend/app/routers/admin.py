@@ -351,7 +351,7 @@ def update_bus(
     
     if bus_in.status is not None:
         bus.status = bus_in.status
-    
+
     db.commit()
     db.refresh(bus)
     
@@ -392,3 +392,98 @@ def create_route(
     db.refresh(route)
     
     return route
+
+@router.get("/routes", response_model=List[schemas.Route])
+def get_routes(
+    skip: int = 0,
+    limit: int = 10,
+    search: str = None,
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    Lấy danh sách tuyến đường với phân trang và tìm kiếm.
+    """
+    query = db.query(models.Route)
+    
+    if search:
+        query = query.filter(
+            models.Route.from_location.ilike(f"%{search}%") |
+            models.Route.to_location.ilike(f"%{search}%")
+        )
+    
+    # Get total count for pagination
+    total_count = query.count()
+    
+    # Apply pagination
+    routes = query.order_by(models.Route.id).offset(skip).limit(limit).all()
+    
+    # Set headers for pagination metadata
+    # FastAPI allows setting response headers, but we need to add this logic in the middleware
+    # or return a custom response object
+    
+    return routes
+
+
+@router.put("/routes/{route_id}", response_model=schemas.Route)
+def update_route(
+    route_id: int,
+    route_in: schemas.RouteUpdate,
+    admin: models.User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    Cập nhật tuyến đường (chỉ admin).
+    """
+    route = db.query(models.Route).filter(models.Route.id == route_id).first()
+    if not route:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy tuyến đường"
+        )
+    
+    # Update fields if provided
+    if route_in.from_location is not None:
+        route.from_location = route_in.from_location
+    if route_in.to_location is not None:
+        route.to_location = route_in.to_location
+    if route_in.distance is not None:
+        route.distance = route_in.distance
+    if route_in.estimated_duration is not None:
+        route.estimated_duration = route_in.estimated_duration
+    if route_in.description is not None:
+        route.description = route_in.description
+    
+    db.commit()
+    db.refresh(route)
+    
+    return route
+
+
+@router.delete("/routes/{route_id}", response_model=dict)
+def delete_route(
+    route_id: int,
+    admin: models.User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    Xóa tuyến đường (chỉ admin).
+    """
+    route = db.query(models.Route).filter(models.Route.id == route_id).first()
+    if not route:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy tuyến đường"
+        )
+    
+    # Check if route is being used by any buses
+    buses = db.query(models.Bus).filter(models.Bus.route_id == route_id).all()
+    if buses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không thể xóa tuyến đường đang được sử dụng bởi các chuyến xe"
+        )
+    
+    db.delete(route)
+    db.commit()
+    
+    return {"message": "Xóa tuyến đường thành công"}

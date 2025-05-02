@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-function Login({ setIsAuthenticated }) {
+function Login({ setIsAuthenticated, setIsAdmin }) {  // Thêm setIsAdmin vào props
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,8 +26,30 @@ function Login({ setIsAuthenticated }) {
       });
 
       localStorage.setItem('token', response.data.access_token);
+      
+      // Lấy thông tin user sau khi đăng nhập thành công
+      const userResponse = await axios.get('/api/v1/users/me', {
+        headers: {
+          'Authorization': `Bearer ${response.data.access_token}`
+        }
+      });
+      
+      // Kiểm tra nếu người dùng là admin
+      const userIsAdmin = userResponse.data.is_admin || false;
+      
+      // Lưu trạng thái admin vào localStorage
+      localStorage.setItem('userRole', userIsAdmin ? 'admin' : 'user');
+      
+      // Cập nhật state
       setIsAuthenticated(true);
-      navigate('/profile');
+      setIsAdmin(userIsAdmin);
+      
+      // Chuyển hướng dựa trên vai trò
+      if (userIsAdmin) {
+        navigate('/admin'); // Chuyển hướng đến trang admin
+      } else {
+        navigate('/'); // Chuyển hướng đến trang home cho người dùng thông thường
+      }
     } catch (err) {
       setError(err.response?.data?.detail || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {

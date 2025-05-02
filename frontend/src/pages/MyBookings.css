@@ -1,0 +1,350 @@
+.my-bookings-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+  
+  .my-bookings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  
+  .my-bookings-header h2 {
+    font-size: 1.8rem;
+    color: #333;
+    margin: 0;
+  }
+  
+  .btn-book-new {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .btn-book-new:hover {
+    background-color: #3e8e41;
+  }
+  
+  .no-bookings {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 0;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .no-bookings p {
+    margin-bottom: 1.5rem;
+    color: #666;
+    font-size: 1.1rem;
+  }
+  
+  .bookings-error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .error-message {
+    color: #d32f2f;
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    text-align: center;
+  }
+  
+  .btn-back {
+    background-color: #f0f0f0;
+    color: #333;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .btn-back:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .bookings-filter {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .bookings-filter label {
+    margin-right: 1rem;
+    font-weight: 500;
+    color: #555;
+  }
+  
+  .status-filter-select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+    min-width: 150px;
+    font-size: 0.9rem;
+  }
+  
+  .bookings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .booking-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .booking-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .booking-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .booking-code {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  
+  .booking-code .label {
+    font-weight: 500;
+    color: #666;
+  }
+  
+  .booking-code .value {
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 0.5px;
+  }
+  
+  .booking-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .status-confirmed {
+    background-color: #e6f7e6;
+    color: #2e7d32;
+  }
+  
+  .status-pending {
+    background-color: #fff8e1;
+    color: #ff8f00;
+  }
+  
+  .status-cancelled {
+    background-color: #ffebee;
+    color: #c62828;
+  }
+  
+  .booking-card-content {
+    padding: 1rem;
+  }
+  
+  .booking-route {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .route-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+  }
+  
+  .from, .to {
+    font-size: 1.1rem;
+  }
+  
+  .arrow {
+    color: #888;
+    margin: 0 0.5rem;
+  }
+  
+  .date-time {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  
+  .date {
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .time {
+    font-weight: 600;
+    color: #1976d2;
+  }
+  
+  .booking-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .detail-item .label {
+    font-size: 0.85rem;
+    color: #666;
+  }
+  
+  .detail-item .value {
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .detail-item .price {
+    font-weight: 600;
+    color: #1976d2;
+  }
+  
+  .booking-card-actions {
+    display: flex;
+    padding: 1rem;
+    gap: 1rem;
+    border-top: 1px solid #eee;
+    background-color: #fafafa;
+  }
+  
+  .btn-view, .btn-cancel {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .btn-view {
+    background-color: #1976d2;
+    color: white;
+    flex: 1;
+  }
+  
+  .btn-view:hover {
+    background-color: #1565c0;
+  }
+  
+  .btn-cancel {
+    background-color: #f44336;
+    color: white;
+    flex: 1;
+  }
+  
+  .btn-cancel:hover {
+    background-color: #d32f2f;
+  }
+  
+  .btn-cancel:disabled {
+    background-color: #e0e0e0;
+    color: #9e9e9e;
+    cursor: not-allowed;
+  }
+  
+  .no-filtered-bookings {
+    text-align: center;
+    padding: 2rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin-top: 1rem;
+    color: #666;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .my-bookings-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .booking-route {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    
+    .date-time {
+      align-items: flex-start;
+      margin-top: 0.5rem;
+    }
+    
+    .booking-details {
+      grid-template-columns: 1fr;
+    }
+    
+    .booking-card-actions {
+      flex-direction: column;
+    }
+  }
+  
+  /* Loading animation */
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50vh;
+    font-size: 1.2rem;
+    color: #666;
+  }
+  
+  .loading::after {
+    content: '';
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.5rem;
+    border: 2px solid #ddd;
+    border-top-color: #1976d2;
+    border-radius: 50%;
+    animation: loading-spinner 0.8s linear infinite;
+  }
+  
+  @keyframes loading-spinner {
+    to {
+      transform: rotate(360deg);
+    }
+  }

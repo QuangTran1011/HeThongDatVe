@@ -20,6 +20,7 @@ class UserInDBBase(UserBase):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    is_admin: bool
 
     class Config:
         orm_mode = True

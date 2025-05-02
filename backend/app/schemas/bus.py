@@ -1,5 +1,5 @@
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime, date, time
 from app.schemas.route import Route
 
@@ -27,6 +27,7 @@ class BusBase(BaseModel):
     departure_time: time
     price: float
     status: str = "active"
+    amenities: List[str] = Field(default=["Wifi", "Nước", "Điều hòa"])  # Thêm trường amenities dạng danh sách
 
 class BusCreate(BusBase):
     pass
@@ -41,6 +42,7 @@ class BusUpdate(BaseModel):
     departure_time: Optional[time] = None
     price: Optional[float] = None
     status: Optional[str] = None
+    amenities: Optional[List[str]] = None  # Thêm trường amenities dạng danh sách
 
 class BusInDBBase(BusBase):
     id: int
@@ -52,6 +54,20 @@ class BusInDBBase(BusBase):
 
 class Bus(BusInDBBase):
     route: Optional["Route"] = None
+    
+    @property
+    def available_seats(self) -> int:
+        if hasattr(self, 'seats'):
+            return sum(1 for seat in self.seats if not seat.is_booked)
+        return 0  # Nếu không có thông tin ghế ngồi
 
 class BusWithSeats(Bus):
     seats: List[Seat] = []
+    
+    @property
+    def available_seats(self) -> int:
+        return sum(1 for seat in self.seats if not seat.is_booked)
+    
+    @property
+    def total_seats(self) -> int:
+        return self.capacity
