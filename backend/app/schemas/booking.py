@@ -1,6 +1,7 @@
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from app.schemas.bus import Seat
 
 class BookedSeatBase(BaseModel):
     seat_id: int
@@ -11,7 +12,8 @@ class BookedSeatCreate(BookedSeatBase):
 class BookedSeat(BookedSeatBase):
     id: int
     booking_id: int
-    
+    seat: Seat
+
     model_config = {
         "from_attributes": True
     }

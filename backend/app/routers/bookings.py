@@ -4,6 +4,8 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Response
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload
+
 
 from app import models, schemas
 from app.database import get_db
@@ -108,10 +110,14 @@ def get_booking(
 ) -> Any:
     """
     Lấy thông tin chi tiết về một đơn đặt vé theo booking_code.
+    Bao gồm cả thông tin về các ghế đã đặt.
     """
+    # Thêm joinedload để lấy thông tin booked_seats và seat trong một truy vấn
     booking = db.query(models.Booking).filter(
-        models.Booking.booking_code == booking_code,  # Sửa từ id sang booking_code
+        models.Booking.booking_code == booking_code,
         models.Booking.user_id == current_user.id
+    ).options(
+        joinedload(models.Booking.booked_seats).joinedload(models.BookedSeat.seat)
     ).first()
     
     if not booking:
@@ -121,6 +127,7 @@ def get_booking(
         )
     
     return booking
+
 
 @router.get("/my", response_model=List[schemas.Booking])
 def get_my_bookings(

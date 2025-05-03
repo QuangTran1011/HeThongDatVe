@@ -15,8 +15,17 @@ function BookingConfirmation() {
   useEffect(() => {
     const fetchBookingDetails = async () => {
       try {
-        // Fetch booking by booking code
-        const bookingResponse = await api.get(`/bookings/code/${bookingCode}`);
+
+        const token = localStorage.getItem('token'); //  nơi lưu token
+
+        const bookingResponse = await api.get(
+          `/bookings/code/${bookingCode}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
         const bookingData = bookingResponse.data;
         setBooking(bookingData);
         
@@ -24,12 +33,9 @@ function BookingConfirmation() {
         const busResponse = await api.get(`/buses/${bookingData.bus_id}`);
         setBus(busResponse.data);
         
-        // Fetch booked seats
-        const bookedSeatsResponse = await api.get(`/bookings/${bookingData.id}/seats`);
-        setSeats(bookedSeatsResponse.data);
-        
         setLoading(false);
       } catch (err) {
+        console.log(err);
         setError('Có lỗi xảy ra khi tải thông tin đặt vé. Vui lòng thử lại sau.');
         setLoading(false);
       }
@@ -214,9 +220,11 @@ function BookingConfirmation() {
                   <div className="detail-item full-width">
                     <span className="label">Ghế đã đặt:</span>
                     <div className="seats-list">
-                      {seats.map(seat => (
-                        <span key={seat.id} className="seat-chip">Ghế {seat.seat_number}</span>
-                      ))}
+                    {booking.booked_seats && booking.booked_seats.map(bookedSeat => (
+                      <span key={bookedSeat.id} className="seat-chip">
+                        Ghế {bookedSeat.seat.seat_number}
+                      </span>
+                    ))}
                     </div>
                   </div>
                 </div>
@@ -228,7 +236,7 @@ function BookingConfirmation() {
                   </div>
                   <div className="detail-item">
                     <span className="label">Số lượng:</span>
-                    <span className="value">{seats.length} ghế</span>
+                    <span className="value">{booking.booked_seats ? booking.booked_seats.length : 0} ghế</span>
                   </div>
                   <div className="detail-item total-price">
                     <span className="label">Tổng tiền:</span>
