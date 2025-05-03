@@ -47,6 +47,7 @@ const AdminBookings = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    setCurrentPage(1); // Reset to first page when searching
     fetchBookings();
   };
 
@@ -56,22 +57,25 @@ const AdminBookings = () => {
     setStartDate('');
     setEndDate('');
     setCurrentPage(1);
-    // Fetch với các giá trị mặc định
+    // Fetch with default values
     setTimeout(fetchBookings, 0);
   };
 
   const handleStatusChange = async (bookingId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`/api/v1/admin/bookings/${bookingId}/status`, 
+      
+      // Using PATCH method for updating the booking status
+      await axios.patch(`/api/v1/admin/bookings/${bookingId}`, 
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` }}
       );
       
-      // Cập nhật trạng thái trong state
+      // Update status in state
       setBookings(bookings.map(booking => 
         booking.id === bookingId ? {...booking, status: newStatus} : booking
       ));
+      
     } catch (err) {
       alert('Không thể cập nhật trạng thái đơn hàng.');
       console.error('Error updating booking status:', err);
@@ -85,6 +89,24 @@ const AdminBookings = () => {
       case 'cancelled': return 'bg-red-100 text-red-800';
       case 'completed': return 'bg-blue-100 text-blue-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Format date from ISO string
+  const formatDate = (dateString) => {
+    try {
+      return new Date(dateString).toLocaleDateString('vi-VN');
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
+  // Format time from ISO string
+  const formatTime = (dateString) => {
+    try {
+      return new Date(dateString).toLocaleTimeString('vi-VN');
+    } catch (error) {
+      return 'N/A';
     }
   };
 
@@ -102,7 +124,7 @@ const AdminBookings = () => {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tên, email, mã đơn..."
+                placeholder="Mã đơn, tên, email, SĐT..."
                 className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring focus:ring-blue-500"
               />
               <FaSearch className="absolute left-3 top-3 text-gray-400" />
@@ -177,8 +199,8 @@ const AdminBookings = () => {
                 <tr className="bg-gray-50">
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Mã đơn</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Khách hàng</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Tuyến đường</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Thời gian</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Thông tin liên hệ</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Ngày đặt</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Số ghế</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Tổng tiền</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 border-b">Trạng thái</th>
@@ -195,21 +217,27 @@ const AdminBookings = () => {
                 ) : (
                   bookings.map(booking => (
                     <tr key={booking.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 border-b">{booking.id}</td>
                       <td className="px-4 py-3 border-b">
-                        <div>{booking.user?.name || 'N/A'}</div>
-                        <div className="text-xs text-gray-500">{booking.user?.email || 'N/A'}</div>
+                        <div className="font-medium">{booking.booking_code}</div>
+                        <div className="text-xs text-gray-500">ID: {booking.id}</div>
                       </td>
                       <td className="px-4 py-3 border-b">
-                        {booking.trip?.route?.departure} - {booking.trip?.route?.destination}
+                        {booking.passenger_name}
                       </td>
                       <td className="px-4 py-3 border-b">
-                        <div>{new Date(booking.trip?.departure_time).toLocaleDateString('vi-VN')}</div>
+                        <div>{booking.passenger_email}</div>
+                        <div className="text-sm text-gray-500">{booking.passenger_phone}</div>
+                      </td>
+                      <td className="px-4 py-3 border-b">
+                        <div>{formatDate(booking.booking_date)}</div>
+                        <div className="text-xs text-gray-500">{formatTime(booking.booking_date)}</div>
+                      </td>
+                      <td className="px-4 py-3 border-b">
+                        {booking.booked_seats ? booking.booked_seats.length : 0}
                         <div className="text-xs text-gray-500">
-                          {new Date(booking.trip?.departure_time).toLocaleTimeString('vi-VN')}
+                          {booking.booked_seats && booking.booked_seats.map(seat => seat.seat.seat_number).join(', ')}
                         </div>
                       </td>
-                      <td className="px-4 py-3 border-b">{booking.seats?.length || 0}</td>
                       <td className="px-4 py-3 border-b">{booking.total_price?.toLocaleString('vi-VN')} VNĐ</td>
                       <td className="px-4 py-3 border-b">
                         <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(booking.status)}`}>

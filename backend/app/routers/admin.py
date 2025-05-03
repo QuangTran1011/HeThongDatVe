@@ -52,6 +52,37 @@ def get_all_bookings(
     bookings = query.order_by(models.Booking.booking_date.desc()).offset(skip).limit(limit).all()
     return bookings
 
+@router.patch("/bookings/{booking_id}", response_model=schemas.Booking)
+def update_booking(
+    booking_id: int,
+    booking_update: schemas.BookingUpdate,
+    admin: models.User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Update booking details (including status).
+    """
+    booking = db.query(models.Booking).filter(models.Booking.id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Update booking fields if provided in the request
+    if booking_update.passenger_name is not None:
+        booking.passenger_name = booking_update.passenger_name
+    
+    if booking_update.passenger_phone is not None:
+        booking.passenger_phone = booking_update.passenger_phone
+    
+    if booking_update.passenger_email is not None:
+        booking.passenger_email = booking_update.passenger_email
+    
+    if booking_update.status is not None:
+        booking.status = booking_update.status
+    
+    db.commit()
+    db.refresh(booking)
+    return booking
+
 @router.get("/statistics", response_model=Dict)
 def get_statistics(
     start_date: date = None,
