@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Time, Date
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Time, Date, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -30,7 +30,7 @@ class Seat(Base):
     id = Column(Integer, primary_key=True, index=True)
     bus_id = Column(Integer, ForeignKey("buses.id"), nullable=False)
     seat_number = Column(String(10), nullable=False)
-    is_booked = Column(Integer, default=False)
+    is_booked = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

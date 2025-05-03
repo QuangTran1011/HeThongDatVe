@@ -100,17 +100,17 @@ def create_booking(
     
     return booking
 
-@router.get("/{booking_id}", response_model=schemas.Booking)
+@router.get("/code/{booking_code}", response_model=schemas.Booking)
 def get_booking(
-    booking_id: int,
+    booking_code: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Any:
     """
-    Lấy thông tin chi tiết về một đơn đặt vé.
+    Lấy thông tin chi tiết về một đơn đặt vé theo booking_code.
     """
     booking = db.query(models.Booking).filter(
-        models.Booking.id == booking_id,
+        models.Booking.booking_code == booking_code,  # Sửa từ id sang booking_code
         models.Booking.user_id == current_user.id
     ).first()
     

@@ -12,8 +12,9 @@ class BookedSeat(BookedSeatBase):
     id: int
     booking_id: int
     
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class BookingBase(BaseModel):
     bus_id: int
@@ -40,8 +41,9 @@ class BookingInDBBase(BookingBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class Booking(BookingInDBBase):
     booked_seats: List[BookedSeat] = []
