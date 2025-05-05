@@ -7,9 +7,7 @@ import {
   FaRoute, 
   FaMoneyBillWave, 
   FaCalendarAlt,
-  FaChartLine,
-  FaUsers,
-  FaClock
+  FaChartLine
 } from 'react-icons/fa';
 
 const AdminDashboard = () => {
@@ -33,38 +31,37 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
-      
+
       // Fetch statistics
       const statsResponse = await axios.get('/api/v1/admin/statistics', { headers });
-      
-      // Fetch routes count
-      const routesResponse = await axios.get('/api/v1/routes?limit=1', { headers });
-      const routesCount = routesResponse.headers['x-total-count'] || 0;
-      
-      // Fetch buses count
-      const busesResponse = await axios.get('/api/v1/buses?limit=1', { headers });
-      const busesCount = busesResponse.headers['x-total-count'] || 0;
-      
-      // Fetch pending bookings
-      const pendingResponse = await axios.get('/api/v1/admin/bookings?status=pending&limit=1', { headers });
-      const pendingCount = pendingResponse.headers['x-total-count'] || 0;
 
-      // Update summary data
+      // Fetch routes
+      const routesResponse = await axios.get('/api/v1/routes', { headers });
+      const routesCount = Array.isArray(routesResponse.data) ? routesResponse.data.length : 0;
+
+      // Fetch buses
+      const busesResponse = await axios.get('/api/v1/buses', { headers });
+      const busesCount = Array.isArray(busesResponse.data) ? busesResponse.data.length : 0;
+
+      // Fetch pending bookings
+      const pendingResponse = await axios.get('/api/v1/admin/bookings?status=pending', { headers });
+      const pendingCount = Array.isArray(pendingResponse.data) ? pendingResponse.data.length : 0;
+
       setSummary({
-        totalBookings: statsResponse.data.total_bookings || 0,
-        totalRevenue: statsResponse.data.total_revenue || 0,
+        totalBookings: statsResponse.data?.total_bookings || 0,
+        totalRevenue: statsResponse.data?.total_revenue || 0,
         totalBuses: busesCount,
         totalRoutes: routesCount,
         pendingBookings: pendingCount,
-        activeRoutes: routesCount // Assuming all routes are active
+        activeRoutes: routesCount
       });
-      
+
       setError(null);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError('Không thể tải dữ liệu tổng quan. Vui lòng thử lại sau.');
-      
-      // Set placeholder data for development
+
+      // Sample placeholder for dev
       setSummary({
         totalBookings: 156,
         totalRevenue: 45600000,
@@ -83,10 +80,7 @@ const AdminDashboard = () => {
   };
 
   const DashboardCard = ({ title, value, icon, bgColor, linkTo }) => (
-    <Link 
-      to={linkTo} 
-      className={`block p-6 rounded-lg shadow hover:shadow-md transition-shadow ${bgColor} text-white`}
-    >
+    <Link to={linkTo} className={`block p-6 rounded-lg shadow hover:shadow-md transition-shadow ${bgColor} text-white`}>
       <div className="flex justify-between items-center">
         <div>
           <p className="text-lg font-medium mb-1 opacity-80">{title}</p>
@@ -98,10 +92,7 @@ const AdminDashboard = () => {
   );
 
   const QuickAction = ({ title, icon, linkTo, bgColor }) => (
-    <Link 
-      to={linkTo}
-      className={`flex items-center p-4 rounded-lg shadow ${bgColor} text-white hover:shadow-md transition-shadow`}
-    >
+    <Link to={linkTo} className={`flex items-center p-4 rounded-lg shadow ${bgColor} text-white hover:shadow-md transition-shadow`}>
       <div className="text-2xl mr-3">{icon}</div>
       <span className="font-medium">{title}</span>
     </Link>
@@ -129,7 +120,6 @@ const AdminDashboard = () => {
         <p className="text-gray-600">Xem tổng quan về hệ thống đặt vé xe</p>
       </div>
 
-      {/* Dashboard summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <DashboardCard 
           title="Tổng đơn đặt vé" 
@@ -162,7 +152,6 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Additional metrics */}
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
             <FaCalendarAlt className="mr-2 text-blue-500" /> Đang chờ xử lý
@@ -196,34 +185,13 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Quick actions */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Thao tác nhanh</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <QuickAction 
-            title="Thêm tuyến đường" 
-            icon={<FaRoute />} 
-            linkTo="/admin/routes" 
-            bgColor="bg-blue-600" 
-          />
-          <QuickAction 
-            title="Thêm xe mới" 
-            icon={<FaBus />} 
-            linkTo="/admin/buses" 
-            bgColor="bg-green-600" 
-          />
-          <QuickAction 
-            title="Quản lý đặt vé" 
-            icon={<FaTicketAlt />} 
-            linkTo="/admin/bookings" 
-            bgColor="bg-yellow-600" 
-          />
-          <QuickAction 
-            title="Thống kê doanh thu" 
-            icon={<FaChartLine />} 
-            linkTo="/admin/statistics" 
-            bgColor="bg-purple-600" 
-          />
+          <QuickAction title="Thêm tuyến đường" icon={<FaRoute />} linkTo="/admin/routes" bgColor="bg-blue-600" />
+          <QuickAction title="Thêm xe mới" icon={<FaBus />} linkTo="/admin/buses" bgColor="bg-green-600" />
+          <QuickAction title="Quản lý đặt vé" icon={<FaTicketAlt />} linkTo="/admin/bookings" bgColor="bg-yellow-600" />
+          <QuickAction title="Thống kê doanh thu" icon={<FaChartLine />} linkTo="/admin/statistics" bgColor="bg-purple-600" />
         </div>
       </div>
     </div>

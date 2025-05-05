@@ -1,4 +1,3 @@
-// src/pages/admin/Statistics.jsx
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaSpinner, FaCalendarAlt } from 'react-icons/fa';
@@ -46,6 +45,7 @@ const AdminStatistics = () => {
       });
       
       setStatistics(response.data);
+      console.log("Statistics data:", response.data); // Debug log
     } catch (err) {
       setError('Không thể tải dữ liệu thống kê.');
       console.error('Error fetching statistics:', err);
@@ -62,22 +62,24 @@ const AdminStatistics = () => {
   const prepareChartData = () => {
     if (!statistics || !statistics.daily_sales) return [];
     
+    // Make sure we convert the object to an array of objects for the chart
     return Object.entries(statistics.daily_sales).map(([date, value]) => ({
       date,
-      revenue: value.revenue,
-      bookings: value.bookings,
-      seats: value.seats
+      revenue: value.revenue || 0,
+      bookings: value.bookings || 0,
+      seats: value.seats || 0
     }));
   };
 
   const prepareRouteData = () => {
     if (!statistics || !statistics.routes_performance) return [];
     
+    // Make sure we have proper data for the chart
     return Object.entries(statistics.routes_performance).map(([routeName, data]) => ({
       routeName,
-      revenue: data.revenue,
-      bookings: data.bookings,
-      seats: data.seats
+      revenue: data.revenue || 0,
+      bookings: data.bookings || 0,
+      seats: data.seats || 0
     }));
   };
 
@@ -155,28 +157,30 @@ const AdminStatistics = () => {
             <div className="bg-blue-50 p-4 rounded-lg shadow">
               <h3 className="text-lg font-medium text-blue-700">Tổng doanh thu</h3>
               <p className="text-2xl font-bold text-blue-800 mt-2">
-                {statistics.total_revenue?.toLocaleString('vi-VN')} VNĐ
+                {(statistics.total_revenue || 0).toLocaleString('vi-VN')} VNĐ
               </p>
             </div>
             
             <div className="bg-green-50 p-4 rounded-lg shadow">
               <h3 className="text-lg font-medium text-green-700">Tổng đơn hàng</h3>
               <p className="text-2xl font-bold text-green-800 mt-2">
-                {statistics.total_bookings} đơn
+                {statistics.total_bookings || 0} đơn
               </p>
             </div>
             
             <div className="bg-purple-50 p-4 rounded-lg shadow">
               <h3 className="text-lg font-medium text-purple-700">Số ghế đã bán</h3>
               <p className="text-2xl font-bold text-purple-800 mt-2">
-                {statistics.total_seats} ghế
+                {statistics.total_seats_sold || 0} ghế
               </p>
             </div>
             
             <div className="bg-yellow-50 p-4 rounded-lg shadow">
               <h3 className="text-lg font-medium text-yellow-700">Tỷ lệ lấp đầy</h3>
               <p className="text-2xl font-bold text-yellow-800 mt-2">
-                {statistics.fill_rate ? `${(statistics.fill_rate * 100).toFixed(1)}%` : 'N/A'}
+                {statistics.fill_rate !== undefined && statistics.fill_rate !== null 
+                  ? `${(statistics.fill_rate * 100).toFixed(1)}%` 
+                  : '0.0%'}
               </p>
             </div>
           </div>
@@ -186,15 +190,38 @@ const AdminStatistics = () => {
             <h3 className="text-lg font-medium mb-4">Doanh thu theo ngày</h3>
             <div className="h-80 bg-gray-50 p-4 rounded-lg shadow">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={prepareChartData()} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <LineChart 
+                  data={prepareChartData()} 
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
                   <Tooltip />
                   <Legend />
-                  <Line yAxisId="left" type="monotone" dataKey="revenue" name="Doanh thu (VNĐ)" stroke="#3b82f6" activeDot={{ r: 8 }} />
-                  <Line yAxisId="right" type="monotone" dataKey="bookings" name="Số đơn" stroke="#10b981" />
+                  <Line 
+                    yAxisId="left" 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    name="Doanh thu (VNĐ)" 
+                    stroke="#3b82f6" 
+                    activeDot={{ r: 8 }} 
+                  />
+                  <Line 
+                    yAxisId="right" 
+                    type="monotone" 
+                    dataKey="bookings" 
+                    name="Số đơn" 
+                    stroke="#10b981" 
+                  />
+                  <Line 
+                    yAxisId="right" 
+                    type="monotone" 
+                    dataKey="seats" 
+                    name="Số ghế" 
+                    stroke="#8b5cf6" 
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -205,13 +232,17 @@ const AdminStatistics = () => {
             <h3 className="text-lg font-medium mb-4">Hiệu suất theo tuyến đường</h3>
             <div className="h-80 bg-gray-50 p-4 rounded-lg shadow">
               <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={prepareRouteData()} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <BarChart 
+                  data={prepareRouteData()} 
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="routeName" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="revenue" name="Doanh thu (VNĐ)" fill="#3b82f6" />
+                  <Bar dataKey="bookings" name="Số đơn hàng" fill="#10b981" />
                   <Bar dataKey="seats" name="Số ghế đã bán" fill="#8b5cf6" />
                 </BarChart>
               </ResponsiveContainer>
@@ -233,22 +264,22 @@ const AdminStatistics = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {statistics.top_routes ? (
+                  {statistics.top_routes && statistics.top_routes.length > 0 ? (
                     statistics.top_routes.map((route, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-4 py-3 border-b">{route.name}</td>
-                        <td className="px-4 py-3 border-b">{route.revenue.toLocaleString('vi-VN')} VNĐ</td>
-                        <td className="px-4 py-3 border-b">{route.bookings}</td>
-                        <td className="px-4 py-3 border-b">{route.seats}</td>
+                        <td className="px-4 py-3 border-b">{(route.revenue || 0).toLocaleString('vi-VN')} VNĐ</td>
+                        <td className="px-4 py-3 border-b">{route.bookings || 0}</td>
+                        <td className="px-4 py-3 border-b">{route.seats || 0}</td>
                         <td className="px-4 py-3 border-b">
                           <div className="w-full bg-gray-200 rounded-full h-2.5">
                             <div 
                               className="bg-blue-600 h-2.5 rounded-full" 
-                              style={{ width: `${(route.fill_rate * 100).toFixed(1)}%` }}
+                              style={{ width: `${((route.fill_rate || 0) * 100).toFixed(1)}%` }}
                             ></div>
                           </div>
                           <span className="text-xs text-gray-500 mt-1">
-                            {(route.fill_rate * 100).toFixed(1)}%
+                            {((route.fill_rate || 0) * 100).toFixed(1)}%
                           </span>
                         </td>
                       </tr>

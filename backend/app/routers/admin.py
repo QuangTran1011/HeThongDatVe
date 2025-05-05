@@ -122,6 +122,17 @@ def get_statistics(
     # Thống kê số chuyến xe
     total_buses = buses_query.count()
     
+    # Tính tổng số ghế có sẵn
+    total_available_seats = db.query(func.sum(models.Bus.capacity)).filter(
+        models.Bus.departure_date >= start_date,
+        models.Bus.departure_date <= end_date
+    )
+    
+    if route_id:
+        total_available_seats = total_available_seats.filter(models.Bus.route_id == route_id)
+    
+    total_available_seats = total_available_seats.scalar() or 0
+    
     # Thống kê số ghế đã bán
     # Đếm tổng số ghế đã đặt qua bảng BookedSeat
     total_seats_sold = db.query(func.count(models.BookedSeat.id)).join(
@@ -140,6 +151,11 @@ def get_statistics(
         ).filter(models.Bus.route_id == route_id)
     
     total_seats_sold = total_seats_sold.scalar() or 0
+    
+    # Tính fill rate - tỉ lệ lấp đầy
+    fill_rate = 0
+    if total_available_seats > 0:
+        fill_rate = total_seats_sold / total_available_seats
     
     # Thống kê doanh thu
     total_revenue = db.query(func.sum(models.Booking.total_price)).filter(
@@ -163,6 +179,33 @@ def get_statistics(
         # Số chuyến xe trong ngày
         daily_buses = buses_query.filter(models.Bus.departure_date == current_date).count()
         
+        # Tổng số ghế có sẵn trong ngày
+        daily_available_seats = db.query(func.sum(models.Bus.capacity)).filter(
+            models.Bus.departure_date == current_date
+        )
+        
+        if route_id:
+            daily_available_seats = daily_available_seats.filter(models.Bus.route_id == route_id)
+        
+        daily_available_seats = daily_available_seats.scalar() or 0
+        
+        # Số ghế đã bán trong ngày
+        daily_seats_sold = db.query(func.count(models.BookedSeat.id)).join(
+            models.Booking,
+            models.BookedSeat.booking_id == models.Booking.id
+        ).filter(
+            cast(models.Booking.booking_date, Date) == current_date,
+            models.Booking.status.in_(["confirmed", "completed"])
+        )
+        
+        if route_id:
+            daily_seats_sold = daily_seats_sold.join(
+                models.Bus,
+                models.Booking.bus_id == models.Bus.id
+            ).filter(models.Bus.route_id == route_id)
+        
+        daily_seats_sold = daily_seats_sold.scalar() or 0
+        
         # Số vé đã bán trong ngày
         daily_bookings = bookings_query.filter(
             cast(models.Booking.booking_date, Date) == current_date
@@ -182,22 +225,73 @@ def get_statistics(
         
         daily_revenue = daily_revenue.scalar() or 0
         
+        # Tính fill rate cho ngày
+        daily_fill_rate = 0
+        if daily_available_seats > 0:
+            daily_fill_rate = daily_seats_sold / daily_available_seats
+        
         daily_stats.append({
             "date": current_date.strftime("%Y-%m-%d"),
             "buses": daily_buses,
             "bookings": daily_bookings,
-            "revenue": daily_revenue
+            "seats": daily_seats_sold,
+            "revenue": daily_revenue,
+            "fill_rate": daily_fill_rate
         })
         
         current_date += timedelta(days=1)
     
+    # Format daily_stats for the frontend
+    daily_sales = {}
+    for stat in daily_stats:
+        daily_sales[stat["date"]] = {
+            "revenue": stat["revenue"],
+            "bookings": stat["bookings"],
+            "seats": stat["seats"]
+        }
+    
     # Thống kê theo tuyến đường
     route_stats = []
+    routes_performance = {}
+    top_routes = []
+    
     if not route_id:
         routes = db.query(models.Route).all()
         for route in routes:
             # Số chuyến xe theo tuyến
             route_buses = buses_query.filter(models.Bus.route_id == route.id).count()
+            
+            # Tổng số ghế có sẵn theo tuyến
+            route_available_seats = db.query(func.sum(models.Bus.capacity)).filter(
+                models.Bus.route_id == route.id,
+                models.Bus.departure_date >= start_date,
+                models.Bus.departure_date <= end_date
+            ).scalar() or 0
+            
+            # Số ghế đã bán theo tuyến
+            route_seats_sold = db.query(func.count(models.BookedSeat.id)).join(
+                models.Booking,
+                models.BookedSeat.booking_id == models.Booking.id
+            ).join(
+                models.Bus,
+                models.Booking.bus_id == models.Bus.id
+            ).filter(
+                models.Bus.route_id == route.id,
+                cast(models.Booking.booking_date, Date) >= start_date,
+                cast(models.Booking.booking_date, Date) <= end_date,
+                models.Booking.status.in_(["confirmed", "completed"])
+            ).scalar() or 0
+            
+            # Số đơn hàng (bookings) theo tuyến
+            route_bookings = db.query(models.Booking).join(
+                models.Bus,
+                models.Booking.bus_id == models.Bus.id
+            ).filter(
+                models.Bus.route_id == route.id,
+                cast(models.Booking.booking_date, Date) >= start_date,
+                cast(models.Booking.booking_date, Date) <= end_date,
+                models.Booking.status.in_(["confirmed", "completed"])
+            ).count()
             
             # Doanh thu theo tuyến
             route_revenue = db.query(func.sum(models.Booking.total_price)).join(
@@ -210,23 +304,58 @@ def get_statistics(
                 models.Booking.status.in_(["confirmed", "completed"])
             ).scalar() or 0
             
-            route_stats.append({
+            # Tính fill rate cho tuyến đường
+            route_fill_rate = 0
+            if route_available_seats > 0:
+                route_fill_rate = route_seats_sold / route_available_seats
+            
+            route_info = {
                 "route_id": route.id,
                 "route_name": f"{route.from_location} - {route.to_location}",
                 "buses": route_buses,
-                "revenue": route_revenue
+                "bookings": route_bookings,
+                "seats": route_seats_sold,
+                "revenue": route_revenue,
+                "fill_rate": route_fill_rate
+            }
+            
+            route_stats.append(route_info)
+            
+            # Thêm vào routes_performance cho biểu đồ
+            route_name = f"{route.from_location} - {route.to_location}"
+            routes_performance[route_name] = {
+                "revenue": route_revenue,
+                "bookings": route_bookings,
+                "seats": route_seats_sold
+            }
+            
+            # Thêm vào top_routes để sắp xếp sau
+            top_routes.append({
+                "name": route_name,
+                "revenue": route_revenue,
+                "bookings": route_bookings,
+                "seats": route_seats_sold,
+                "fill_rate": route_fill_rate
             })
+    
+    # Sắp xếp top_routes theo doanh thu (giảm dần)
+    top_routes.sort(key=lambda x: x["revenue"], reverse=True)
+    # Giới hạn số lượng tuyến hàng đầu
+    top_routes = top_routes[:5]
     
     return {
         "total_buses": total_buses,
         "total_seats_sold": total_seats_sold,
+        "total_bookings": bookings_query.count(),
         "total_revenue": total_revenue,
+        "fill_rate": fill_rate,
         "period": {
             "start_date": start_date.strftime("%Y-%m-%d"),
             "end_date": end_date.strftime("%Y-%m-%d")
         },
-        "daily_stats": daily_stats,
-        "route_stats": route_stats
+        "daily_sales": daily_sales,
+        "routes_performance": routes_performance,
+        "top_routes": top_routes
     }
 
 @router.post("/buses", response_model=schemas.Bus)
